@@ -31,6 +31,7 @@ def create_table(tabla_loc, colums):
 
 create_table(tabla_loc, colums)
 
+# Insertar datos
 def insert_date():
     with open('localidades.csv', 
           newline='', 
@@ -42,18 +43,36 @@ def insert_date():
         next(lectura_csv)
         try:
             for row in lectura_csv:
-                cursor.execute(f"INSERT INTO {tabla_loc} (provincia, id, localidad, cp, id_prov_mstr) VALUES (%s, %s, %s, %s, %s)", row[0:5])
+                cursor.execute(f"INSERT INTO {tabla_loc} (provincia, id, localidad, cp, id_prov_mstr) VALUES ( %s, %s, %s, %s, %s )", row[0:5])
         except csv.Error as e:
             sys.exit('file {}, line {}: {}'.format(csv_file, lectura_csv.line_num, e)) 
-
-    db.commit()
-    print('Datos insertados correctamente.')
+    try:
+        db.commit()
+        print('Datos insertados correctamente.')
+    except:
+        db.rollback()
 
 insert_date()
 
-# Contar filas insertadas
-cursor.execute(f"SELECT COUNT(*) FROM {tabla_loc}")
-num_filas = cursor.fetchone()[0]
-print(f"Total de filas insertadas: {num_filas}")
+# Consulta de la cantidad de filas
+consulta = "SELECT * FROM localidades"
+cursor.execute(consulta)
+print(cursor.rowcount, "filas insertadas.")
+
+
+# Consulta para agrupar localidades por provincia
+def group_by_provincia():
+    cursor.execute("""
+        SELECT provincia, COUNT(*) AS total_localidades,
+            ROW_NUMBER() OVER (ORDER BY provincia) AS numero_provincia
+        FROM localidades
+        GROUP BY provincia
+        ORDER BY provincia
+    """)
+    results = cursor.fetchall()
+    for provincia, total_localidades, numero_provincia in results:
+        print(f"Provincia {numero_provincia}: {provincia} - Cantidad de localidades: {total_localidades}")
+
+group_by_provincia()
 
 db.close()
