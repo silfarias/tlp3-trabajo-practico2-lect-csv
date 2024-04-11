@@ -1,4 +1,4 @@
-import csv, sys
+import csv, sys, os
 import MySQLdb
 
 # Conexión a la base de datos
@@ -33,19 +33,14 @@ create_table(tabla_loc, colums)
 
 # Insertar datos
 def insert_date():
-    with open('localidades.csv', 
-          newline='', 
-          mode='r', 
-          encoding='utf-8') as csv_file:
-        lectura_csv = csv.reader(csv_file,                 
-                                delimiter=',', 
-                                quotechar='"')
+    with open('localidades.csv', newline='', mode='r', encoding='utf-8') as csv_file:
+        lectura_csv = csv.reader(csv_file, delimiter=',', quotechar='"')
         next(lectura_csv)
         try:
             for row in lectura_csv:
                 cursor.execute(f"INSERT INTO {tabla_loc} (provincia, id, localidad, cp, id_prov_mstr) VALUES ( %s, %s, %s, %s, %s )", row[0:5])
-        except csv.Error as e:
-            sys.exit('file {}, line {}: {}'.format(csv_file, lectura_csv.line_num, e)) 
+        except csv.Error:
+            sys.exit()
     try:
         db.commit()
         print('Datos insertados correctamente.')
@@ -58,7 +53,6 @@ insert_date()
 consulta = "SELECT * FROM localidades"
 cursor.execute(consulta)
 print(cursor.rowcount, "filas insertadas.")
-
 
 # Consulta para agrupar localidades por provincia
 def group_by_provincia():
@@ -74,5 +68,30 @@ def group_by_provincia():
         print(f"Provincia {numero_provincia}: {provincia} - Cantidad de localidades: {total_localidades}")
 
 group_by_provincia()
+
+
+def create_csvs():
+    # Consulta para obtener localidades agrupadas por provincia
+    consulta = "SELECT provincia, localidad FROM localidades ORDER BY provincia"
+    cursor.execute(consulta)
+    results = cursor.fetchall()
+
+    folder = 'localidades_por_provincia'
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    for provincia in results:
+        with open(f'{folder}/{provincia[0]}.csv', 'w', newline='', encoding='utf-8') as csv_file:
+            csv_writer = csv.writer(csv_file)
+            csv_writer.writerow(['localidad'])
+
+            cursor.execute(f"SELECT localidad FROM localidades WHERE provincia = '{provincia[0]}'")
+            localidades = cursor.fetchall()
+
+            for localidad in localidades:
+                csv_writer.writerow([localidad[0]])
+
+    print('Archivos CSV creados correctamente.')
+create_csvs()
 
 db.close()
