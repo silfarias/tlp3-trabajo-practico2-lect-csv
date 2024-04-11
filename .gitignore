@@ -1,0 +1,4 @@
+localidades_por_provincia/*.csv
+!localidades_por_provincia/*.txt
+
+
