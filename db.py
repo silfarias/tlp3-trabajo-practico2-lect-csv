@@ -1,6 +1,7 @@
 import csv, sys, os
 import MySQLdb
 
+
 # Conexión a la base de datos
 try:
     db = MySQLdb.connect('localhost', 'root', '', 'provincias_argentinas')
@@ -10,9 +11,9 @@ except MySQLdb.Error as error:
 print('Conexión exitosa')
 
 
-# Creación de la tabla
 cursor = db.cursor()
 
+# Creación de la tabla
 tabla_loc = 'localidades'
 colums = [
     'provincia VARCHAR(255)',
@@ -24,14 +25,15 @@ colums = [
 
 
 def create_table(tabla_loc, colums):
-    cursor.execute(f"DROP TABLE IF EXISTS {tabla_loc}")
-    cursor.execute(f"CREATE TABLE {tabla_loc} ({', '.join(colums)})")
+    cursor.execute(f"DROP TABLE IF EXISTS {tabla_loc}") # Elimina la tabla si ya existe
+    cursor.execute(f"CREATE TABLE {tabla_loc} ({', '.join(colums)})") # Crea la tabla
     if cursor:
         print(f"Se ha creado la tabla {tabla_loc}")
 
 create_table(tabla_loc, colums)
 
-# Insertar datos
+
+# Inserta datos a la tabla
 def insert_date():
     with open('localidades.csv', newline='', mode='r', encoding='utf-8') as csv_file:
         lectura_csv = csv.reader(csv_file, delimiter=',', quotechar='"')
@@ -44,15 +46,12 @@ def insert_date():
     try:
         db.commit()
         print('Datos insertados correctamente.')
+        print("filas insertadas: ", cursor.execute("SELECT * FROM localidades"))
     except:
         db.rollback()
 
 insert_date()
 
-# Consulta de la cantidad de filas
-consulta = "SELECT * FROM localidades"
-cursor.execute(consulta)
-print(cursor.rowcount, "filas insertadas.")
 
 # Consulta para agrupar localidades por provincia
 def group_by_provincia():
@@ -71,14 +70,13 @@ group_by_provincia()
 
 
 def create_csvs():
-    # Consulta para obtener localidades agrupadas por provincia
-    consulta = "SELECT provincia, localidad FROM localidades ORDER BY provincia"
+    consulta = "SELECT provincia, localidad FROM localidades ORDER BY provincia" # Obtener localidades agrupadas por provincias
     cursor.execute(consulta)
     results = cursor.fetchall()
 
     folder = 'localidades_por_provincia'
     if not os.path.exists(folder):
-        os.makedirs(folder)
+        os.makedirs(folder) # Si el directorio no existe, lo crea
 
     for provincia in results:
         with open(f'{folder}/{provincia[0]}.csv', 'w', newline='', encoding='utf-8') as csv_file:
@@ -92,6 +90,8 @@ def create_csvs():
                 csv_writer.writerow([localidad[0]])
 
     print('Archivos CSV creados correctamente.')
+    
 create_csvs()
+
 
 db.close()
