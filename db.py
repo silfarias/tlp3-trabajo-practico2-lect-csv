@@ -42,6 +42,7 @@ def insert_date():
             for row in lectura_csv:
                 cursor.execute(f"INSERT INTO {tabla_loc} (provincia, id, localidad, cp, id_prov_mstr) VALUES ( %s, %s, %s, %s, %s )", row[0:5])
         except csv.Error:
+            print('Error al insertar los datos')
             sys.exit()
     try:
         db.commit()
@@ -70,28 +71,38 @@ group_by_provincia()
 
 
 def create_csvs():
+    
     consulta = "SELECT provincia, localidad FROM localidades ORDER BY provincia" # Obtener localidades agrupadas por provincias
     cursor.execute(consulta)
     results = cursor.fetchall()
 
     folder = 'localidades_por_provincia'
+    
     if not os.path.exists(folder):
         os.makedirs(folder) # Si el directorio no existe, lo crea
-
+        
+        
     for provincia in results:
         with open(f'{folder}/{provincia[0]}.csv', 'w', newline='', encoding='utf-8') as csv_file:
             csv_writer = csv.writer(csv_file)
             csv_writer.writerow(['localidad'])
 
+            # Consulta para obtener las localidades de la provincia actual
             cursor.execute(f"SELECT localidad FROM localidades WHERE provincia = '{provincia[0]}'")
             localidades = cursor.fetchall()
 
             for localidad in localidades:
                 csv_writer.writerow([localidad[0]])
+                
+            csv_writer.writerow([f"Total: {len(localidades)}"])
 
-    print('Archivos CSV creados correctamente.')
+
+    # print('Archivos CSV creados correctamente.')
     
-create_csvs()
+try:
+    create_csvs()
+except Exception as e:
+    print(f"Error: {e}")
 
 
 db.close()
